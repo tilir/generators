@@ -38,7 +38,7 @@ set<size_t> spanning(G&& graph);
 // non-modifying spanning tree
 // returns set of N-1 edges which forms spanning tree
 template <typename G>
-typename G::span_t nonmod_spanning(G&& graph);
+auto nonmod_spanning(G&& graph);
 
 // is connected component of size x
 template <typename G>
@@ -128,8 +128,8 @@ void dfs_backedges(G&& graph, F fcb, size_t start) {
 template <typename G>
 set<size_t> spanning(G&& graph) {
   set<size_t> edges;
-  using arrt = typename remove_reference_t<G>::arrit;
-  dfs_backedges(graph, [&](size_t cure, arrt, arrt){
+  using arriter = typename remove_reference_t<G>::arrit;
+  dfs_backedges(graph, [&](size_t cure, arriter, arriter){
     edges.insert(cure);
     graph.edelete(cure);
     return true;
@@ -138,16 +138,17 @@ set<size_t> spanning(G&& graph) {
 }
 
 template <typename G>
-typename G::span_t nonmod_spanning(G&& graph) {
+auto nonmod_spanning(G&& graph) {
   vector v(graph.nrecords(), 1);
-  dfs_backedges(forward<G>(graph), [&](size_t cure, typename G::arrit, typename G::arrit){
+  using arriter = typename remove_reference_t<G>::arrit;
+  dfs_backedges(forward<G>(graph), [&](size_t cure, arriter, arriter){
     v[cure] = 0;
     v[cure^1] = 0;
     return true;
   });
 
   size_t residx = 0;
-  typename G::span_t res;
+  typename remove_reference_t<G>::span_t res;
   for (size_t e = graph.edges_start(); e < graph.nrecords(); e += 2) {
     if (v[e] == 1)
       res[residx++] = e;
