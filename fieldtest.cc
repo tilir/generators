@@ -1,7 +1,6 @@
 #include "field.hpp"
 
-int
-test_field() {
+int test_field() {
   Field f(4, 3);
   assert(f.put(3, 1));
   assert(!f.put(3, 1));
@@ -54,9 +53,4 @@ test_field() {
   assert(!f2.put(2, 2));
 }
 
-
-int
-main() {
-  test_field();
-}
-
+int main() { test_field(); }

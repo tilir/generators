@@ -7,7 +7,7 @@
 // Initial field (x shows current position)
 //
 //     N
-//  <-----> 
+//  <----->
 //  x****** ^
 //  ******* | M
 //  ******* v
@@ -45,7 +45,7 @@
 //
 // Field is now filled: 11111 22 | 333 4 5 22 | 333 4 6 22
 //
-// It is paving, but it is not tight paving because 
+// It is paving, but it is not tight paving because
 // some coordinates are not used
 //
 //------------------------------------------------------------------------------
@@ -63,13 +63,14 @@ using std::ostream;
 using std::vector;
 
 template <typename V> static inline bool all_set(V x) {
-  return (x.end() == find_if(x.begin(), x.end(), [](bool b) { return (b == false); }));
+  return (x.end() ==
+          find_if(x.begin(), x.end(), [](bool b) { return (b == false); }));
 }
 
 class Field {
   size_t N;
   size_t M;
-  vector<vector<size_t>> flda_ {};
+  vector<vector<size_t>> flda_{};
   vector<bool> fld_;
   vector<bool> hcoord_;
   vector<bool> vcoord_;
@@ -81,7 +82,7 @@ class Field {
   // returns n of promoted cells
   size_t promote() {
     size_t res = 0;
-    while ((vpos_*N + hpos_ < M*N) && fld_[vpos_*N + hpos_]) {
+    while ((vpos_ * N + hpos_ < M * N) && fld_[vpos_ * N + hpos_]) {
       hpos_ += 1;
       res += 1;
       if (hpos_ == N) {
@@ -94,16 +95,16 @@ class Field {
 
   // helper: pure horizontal block (1 x len)
   bool put_horz(size_t len, size_t num) {
-    assert (len > 0);
-    assert (hpos_ + len <= N);
+    assert(len > 0);
+    assert(hpos_ + len <= N);
 
-    if (vpos_*N + hpos_ + len - 1 > M*N) 
-      return false;     
+    if (vpos_ * N + hpos_ + len - 1 > M * N)
+      return false;
 
     for (size_t idx = 0; idx != len; ++idx) {
-      if (fld_[vpos_*N + hpos_ + idx])
-        return false;      
-      fld_[vpos_*N + hpos_ + idx] = true;
+      if (fld_[vpos_ * N + hpos_ + idx])
+        return false;
+      fld_[vpos_ * N + hpos_ + idx] = true;
       flda_[vpos_][hpos_ + idx] = num;
     }
 
@@ -113,19 +114,19 @@ class Field {
 
   // helper: pure vertical block (len x 1)
   bool put_vert(size_t len, size_t num, bool check_promotion) {
-    assert (len > 0);
+    assert(len > 0);
 
     // we can not assert it: we are breaking block into vertical parts
     if (vpos_ + len > M)
       return false;
 
-    if ((vpos_ + len - 1)*N + hpos_ > M*N)
+    if ((vpos_ + len - 1) * N + hpos_ > M * N)
       return false;
 
     for (size_t idx = 0; idx != len; ++idx) {
-      if (fld_[(vpos_ + idx)*N + hpos_])
-        return false;      
-      fld_[(vpos_ + idx)*N + hpos_] = true;
+      if (fld_[(vpos_ + idx) * N + hpos_])
+        return false;
+      fld_[(vpos_ + idx) * N + hpos_] = true;
       flda_[vpos_ + idx][hpos_] = num;
     }
 
@@ -137,15 +138,14 @@ class Field {
     return true;
   }
 
-
 public:
-  Field(size_t horz, size_t vert) : N(horz), M(vert), fld_(M*N),
-    hcoord_(N-1), vcoord_(M-1)  {
+  Field(size_t horz, size_t vert)
+      : N(horz), M(vert), fld_(M * N), hcoord_(N - 1), vcoord_(M - 1) {
     flda_.resize(M);
-    for (auto &fv: flda_) {
+    for (auto &fv : flda_) {
       fv.resize(N);
       fill(fv.begin(), fv.end(), 0);
-    }    
+    }
   }
 
   void reset() {
@@ -157,24 +157,21 @@ public:
     curnum_ = 1;
   }
 
-  bool all() {
-    return all_set(fld_);
-  }
+  bool all() { return all_set(fld_); }
 
-  bool tight() {
-    return all_set(hcoord_) && all_set(vcoord_);
-  }
+  bool tight() { return all_set(hcoord_) && all_set(vcoord_); }
 
   void dump(ostream &os) {
     for (size_t x = 0; x < M; ++x) {
       for (auto s : flda_[x])
         os << s;
-      if (x != M-1) os << "|";
+      if (x != M - 1)
+        os << "|";
     }
   }
 
   bool put(size_t hlen, size_t vlen) {
-    assert ((hlen >= 1) && (vlen >= 1));
+    assert((hlen >= 1) && (vlen >= 1));
     size_t oldhpos = hpos_;
     size_t oldvpos = vpos_;
     bool res;
@@ -187,23 +184,24 @@ public:
 
     if (vlen == 1) {
       res = put_horz(hlen, curnum_);
-      if (!res) return false;
-    }
-    else {
+      if (!res)
+        return false;
+    } else {
       for (int idx = 0; idx != hlen; ++idx) {
-        res = put_vert(vlen, curnum_, (idx != hlen-1));
-        if (!res) return false; 
+        res = put_vert(vlen, curnum_, (idx != hlen - 1));
+        if (!res)
+          return false;
       }
     }
 
-    if (oldhpos > 0)    
+    if (oldhpos > 0)
       hcoord_[oldhpos - 1] = true;
-    if (oldhpos + hlen < N) 
-      hcoord_[oldhpos + hlen - 1] =  true;
+    if (oldhpos + hlen < N)
+      hcoord_[oldhpos + hlen - 1] = true;
 
-    if (oldvpos > 0)    
+    if (oldvpos > 0)
       vcoord_[oldvpos - 1] = true;
-    if (oldvpos + vlen < M) 
+    if (oldvpos + vlen < M)
       vcoord_[oldvpos + vlen - 1] = true;
 
     curnum_ += 1;

@@ -15,15 +15,14 @@
 
 #include <cassert>
 
-template <typename Iter> 
-bool
-next_break_of (size_t n, size_t m, Iter start, Iter end) {
+template <typename Iter>
+bool next_break_of(size_t n, size_t m, Iter start, Iter end) {
   assert(n >= 2);
   assert(m >= 2);
 
   auto &last = *--end;
   auto &pre_last = *--end;
-  
+
   if (pre_last < last - 1) {
     last -= 1;
     pre_last += 1;
@@ -49,7 +48,7 @@ next_break_of (size_t n, size_t m, Iter start, Iter end) {
   j -= 1;
 
   while (j > 1) {
-    *itj = x;    
+    *itj = x;
     s -= x;
     j -= 1;
     itj++;
@@ -60,4 +59,3 @@ next_break_of (size_t n, size_t m, Iter start, Iter end) {
 }
 
 #endif
-
