@@ -53,7 +53,7 @@ public:
 
         T.eundelete(ej);
         USED[ej] = true;
-        if (detect_loop(T, T.vhead(ej) - 1).empty())
+        if (detect_loop(T, T.vhead(ej) - 1).empty() && is_connected(T, T.nvert()))
           do_all_spanning(fcallback, eidx+1, ejdx+1);
         T.edelete(ej);
         USED[ej] = false;
