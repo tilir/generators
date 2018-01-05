@@ -4,13 +4,22 @@
 //
 //------------------------------------------------------------------------------
 
+#include <cstring>
 #include <iostream>
+#include <string>
 
 #include "graph.hpp"
 
 using std::cout;
 using std::endl;
 using std::ofstream;
+using std::stol;
+using std::strlen;
+
+struct genconfig {
+  bool only_stat = false;
+  bool no_stat = false;
+};
 
 void outtabs(size_t n) {
   for (size_t i = 0; i < n; ++i)
@@ -77,35 +86,82 @@ public:
 
 // all spanning trees
 
-template <typename F> int test_all() {
-  size_t count;
-  cout << "--- Test for all spanning trees by Mayeda-Seshu ---" << endl;
-  count = 0;
-  auto[ g, rep ] = get_rombic_graph(0);
-  ofstream ofs("knuth_allspans_ms.dot");
-  F spms(g);
+int all_span(size_t n, size_t m, genconfig gcf) {
+  size_t count_st = 0;
+  auto[ g, rep ] = get_mn_lattice(n, m);
+  ofstream ofs("lat_allspans.dot");
+  all_spanning_MS spms(g);
   spms([&](Graph sp) {
-    cout << "kgraph spanning #" << count++ << ": ";
-    dump_flat(cout, sp);
-    for (auto &x : rep) {
-      x[1] += 2;
+    count_st += 1;
+    if (!gcf.only_stat) {
+      cout << n << "-" << m << "lattice spanning #" << count_st << ": ";
+      dump_flat(cout, sp);    
+      for (auto &x : rep) {
+        x[1] += m;
+      }
+      dump_as_dot(ofs, sp, rep);
     }
-    dump_as_dot(ofs, sp, rep);
   });
 
-  count = 0;
-  auto[ g23, rep23 ] = get_mn_lattice(2, 3);
-  ofstream ofs23("lat23_allspans_ms.dot");
-  F spms23(g23);
-  spms23([&](Graph sp) {
-    cout << "2-3 lattice spanning #" << count++ << ": ";
-    dump_flat(cout, sp);
-    for (auto &x : rep23) {
-      x[1] += 3;
-    }
-    dump_as_dot(ofs23, sp, rep23);
-  });
+  if (!gcf.no_stat) {
+    cout << "Statistics:" << endl;
+    cout << "Number of spanning trees: " << count_st << endl;
+  }
 }
 
-int main() { test_all<all_spanning_MS>(); }
+
+void printusage(char *argv0) {
+  cout << "Usage: " << argv0 << " n m [options]" << endl;
+  cout << "\tWhere n is horizontal size" << endl;
+  cout << "\t      m is vertical size" << endl;
+  cout << "Note: m and n shall be >= 2" << endl;
+  cout << "Options supported are:" << endl;
+  cout << "\t-s -- show statistics only" << endl;
+  cout << "\t-n -- show no statistics" << endl;
+}
+
+int main(int argc, char **argv) { 
+
+  if (argc < 3) {
+    printusage(argv[0]);
+    return -1;
+  }
+
+  auto n = stol(argv[1]);
+  auto m = stol(argv[2]);
+
+  if (n < 2 || m < 2) {
+    printusage(argv[0]);
+    return -1;
+  }
+
+  genconfig gcf;
+
+  for (size_t nopt = 3; nopt < argc; ++nopt) {
+    if (argv[nopt][0] != '-') {
+      printusage(argv[0]);
+      cout << "Please prepend options with - and pass separately" << endl;
+      return -1;
+    }
+    if (strlen(argv[nopt]) != 2) {
+      printusage(argv[0]);
+      cout << "Note: any option is one char after - sign" << endl;
+      return -1;
+    }
+    switch (argv[nopt][1]) {
+    case 's':
+      gcf.only_stat = true;
+      break;
+    case 'n':
+      gcf.no_stat = true;
+      break;
+    default:
+      printusage(argv[0]);
+      cout << "Note: only available options are listed above" << endl;
+      return -1;
+    }
+  }
+
+  all_span(n, m, gcf);
+}
 
