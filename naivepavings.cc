@@ -12,6 +12,7 @@
 //------------------------------------------------------------------------------
 
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
@@ -33,9 +34,20 @@ using std::next_permutation;
 using std::pair;
 using std::sort;
 using std::stol;
+using std::strlen;
 
-size_t naive_gen(size_t N, size_t M) {
-  size_t count = 0;
+struct genconfig {
+  bool only_stat = false;
+  bool no_stat = false;
+  bool only_vtype = false;
+};
+
+size_t naive_gen(size_t N, size_t M, genconfig gcf) {
+  size_t count_ss = 0;
+  size_t count_np = 0;
+  size_t count_nt = 0;
+  size_t count_tp = 0;
+  size_t count_vt = 0;
 
   // 1. enumerate possible block types
   //    (1 .. M-1) x (1 .. N-1) + 1 x N + 1 x M
@@ -150,11 +162,28 @@ size_t naive_gen(size_t N, size_t M) {
             break;
         }
 
+        count_ss += 1;
+
+        if (!f.all())
+          count_np += 1;
+
+        if (f.all() && !f.tight()) {
+          count_nt += 1;
+        }
+
         if (f.all() && f.tight()) {
-          count += 1;
-          cout << "Tight paving #" << count << ": ";
-          f.dump(cout);
-          cout << endl;
+          count_tp += 1;
+          if (!gcf.only_stat && !gcf.only_vtype) {
+            f.dump(cout);
+            cout << endl;
+          }
+          if (f.vtype()) {
+            count_vt += 1;
+            if (!gcf.only_stat && gcf.only_vtype) {
+              f.dump(cout);
+              cout << endl;
+            }
+          }
         }
 
         size_t digit = mback;
@@ -177,21 +206,73 @@ size_t naive_gen(size_t N, size_t M) {
     } while (next_permutation(bcnt.begin(), bcnt.end()));
   } while (next_break_of(M * N, M + N - 1, bcnt.begin(), bcnt.end()));
 
+  if (!gcf.no_stat) {
+    cout << "Statistics: " << endl;
+    cout << "Search space size: " << count_ss << endl;
+    cout << "Not a pavings: " << count_np << endl;
+    cout << "Not tight pavings: " << count_nt << endl;
+    cout << "Tight pavings: " << count_tp << endl;
+    cout << "Vertical types: " << count_vt << endl;
+  }
+
   // 5. return result
-  return count;
+  return count_tp;
+}
+
+void printusage(char *argv0) {
+  cout << "Usage: " << argv0 << " n m [options]" << endl;
+  cout << "\tWhere n is horizontal size" << endl;
+  cout << "\t      m is vertical size" << endl;
+  cout << "Note: m and n shall be >= 2" << endl;
+  cout << "Options supported are:" << endl;
+  cout << "\t-s -- show statistics only" << endl;
+  cout << "\t-n -- show no statistics" << endl;
+  cout << "\t-v -- show vtype pavings" << endl;
 }
 
 int main(int argc, char **argv) {
-  if ((argc != 3) || (stol(argv[1]) < 2) || (stol(argv[2]) < 2)) {
-    cout << "Usage: " << argv[0] << " n, m" << endl;
-    cout << "\tWhere n is horizontal size" << endl;
-    cout << "\t      m is vertical size" << endl;
-    cout << "Note: m and n shall be >= 2" << endl;
+  if (argc < 3) {
+    printusage(argv[0]);
     return -1;
   }
 
   auto n = stol(argv[1]);
   auto m = stol(argv[2]);
 
-  naive_gen(n, m);
+  if (n < 2 || m < 2) {
+    printusage(argv[0]);
+    return -1;
+  }
+
+  genconfig gcf;
+
+  for (size_t nopt = 3; nopt < argc; ++nopt) {
+    if (argv[nopt][0] != '-') {
+      printusage(argv[0]);
+      cout << "Please prepend options with - and pass separately" << endl;
+      return -1;
+    }
+    if (strlen(argv[nopt]) != 2) {
+      printusage(argv[0]);
+      cout << "Note: any option is one char after - sign" << endl;
+      return -1;
+    }
+    switch (argv[nopt][1]) {
+    case 's':
+      gcf.only_stat = true;
+      break;
+    case 'n':
+      gcf.no_stat = true;
+      break;
+    case 'v':
+      gcf.only_vtype = true;
+      break;
+    default:
+      printusage(argv[0]);
+      cout << "Note: only available options are listed above" << endl;
+      return -1;
+    }
+  }
+
+  naive_gen(n, m, gcf);
 }

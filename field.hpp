@@ -64,16 +64,15 @@ using std::vector;
 
 template <typename V> static inline bool all_set(V x) {
   return (x.end() ==
-          find_if(x.begin(), x.end(), [](bool b) { return (b == false); }));
+          find_if(x.begin(), x.end(), [](size_t b) { return (b == 0); }));
 }
 
 class Field {
   size_t N;
   size_t M;
-  vector<vector<size_t>> flda_{};
-  vector<bool> fld_;
-  vector<bool> hcoord_;
-  vector<bool> vcoord_;
+  vector<size_t> fld_;
+  vector<size_t> hcoord_;
+  vector<size_t> vcoord_;
   size_t vpos_ = 0;
   size_t hpos_ = 0;
   size_t curnum_ = 1;
@@ -102,10 +101,9 @@ class Field {
       return false;
 
     for (size_t idx = 0; idx != len; ++idx) {
-      if (fld_[vpos_ * N + hpos_ + idx])
+      if (fld_[vpos_ * N + hpos_ + idx] > 0)
         return false;
-      fld_[vpos_ * N + hpos_ + idx] = true;
-      flda_[vpos_][hpos_ + idx] = num;
+      fld_[vpos_ * N + hpos_ + idx] = num;
     }
 
     promote();
@@ -124,10 +122,9 @@ class Field {
       return false;
 
     for (size_t idx = 0; idx != len; ++idx) {
-      if (fld_[(vpos_ + idx) * N + hpos_])
+      if (fld_[(vpos_ + idx) * N + hpos_] > 0)
         return false;
-      fld_[(vpos_ + idx) * N + hpos_] = true;
-      flda_[vpos_ + idx][hpos_] = num;
+      fld_[(vpos_ + idx) * N + hpos_] = num;
     }
 
     size_t np = promote();
@@ -140,18 +137,13 @@ class Field {
 
 public:
   Field(size_t horz, size_t vert)
-      : N(horz), M(vert), fld_(M * N), hcoord_(N - 1), vcoord_(M - 1) {
-    flda_.resize(M);
-    for (auto &fv : flda_) {
-      fv.resize(N);
-      fill(fv.begin(), fv.end(), 0);
-    }
+      : N(horz), M(vert), fld_(M * N, 0), hcoord_(N - 1, 0), vcoord_(M - 1, 0) {
   }
 
   void reset() {
-    fill(fld_.begin(), fld_.end(), false);
-    fill(hcoord_.begin(), hcoord_.end(), false);
-    fill(vcoord_.begin(), vcoord_.end(), false);
+    fill(fld_.begin(), fld_.end(), 0);
+    fill(hcoord_.begin(), hcoord_.end(), 0);
+    fill(vcoord_.begin(), vcoord_.end(), 0);
     hpos_ = 0;
     vpos_ = 0;
     curnum_ = 1;
@@ -161,10 +153,61 @@ public:
 
   bool tight() { return all_set(hcoord_) && all_set(vcoord_); }
 
+  // Easiest way to determine vtype is to use vertical lengths of current num
+  //
+  // 1 2 2 2 3
+  // 1 4 5 6 3
+  // 1 4 5 7 3
+  //
+  // is tight paving but not a vtype, because it has on level 2
+  // adjacent curnums 4 and 5  with same vlen and vends
+  //
+  // but
+  //
+  // 1 2 2 2 3
+  // 1 4 5 6 3
+  // 1 4 7 6 3
+  //
+  // is a vtype.
+  //
+  // Btw, it is one of six proper 5x3 vtypes, others five are:
+  // 12345|16345|16375
+  // 12345|12645|17775
+  // 12345|12365|17365
+  // 12334|12564|17764
+  // 12234|15634|15774
+  //
+  bool vtype() {
+    assert(all() && tight());
+    assert(curnum_ - 1 == M + N - 1);
+    vector<size_t> vlens(curnum_, 0);
+    vector<size_t> vends(curnum_, 0);
+    for (size_t y = 0; y < M; ++y)
+      for (size_t x = 0; x < N; ++x) {
+        auto cur = y * N + x;
+        auto ncur = fld_[cur];
+        if (vlens[ncur] == 0) {
+          for (size_t test = 0; test < M; ++test) {
+            if (ncur == fld_[test * N + x]) {
+              vlens[ncur] += 1;
+              vends[ncur] = test;
+            }
+          }
+          if (x > 0) {
+            auto nprev = fld_[cur - 1];
+            assert(ncur != nprev);
+            if ((vlens[ncur] == vlens[nprev]) && (vends[ncur] == vends[nprev]))
+              return false;
+          }
+        }
+      }
+    return true;
+  }
+
   void dump(ostream &os) {
     for (size_t x = 0; x < M; ++x) {
-      for (auto s : flda_[x])
-        os << s;
+      for (size_t y = 0; y < N; ++y)
+        os << fld_[x * N + y];
       if (x != M - 1)
         os << "|";
     }
@@ -194,15 +237,11 @@ public:
       }
     }
 
-    if (oldhpos > 0)
-      hcoord_[oldhpos - 1] = true;
     if (oldhpos + hlen < N)
-      hcoord_[oldhpos + hlen - 1] = true;
+      hcoord_[oldhpos + hlen - 1] += 1;
 
-    if (oldvpos > 0)
-      vcoord_[oldvpos - 1] = true;
     if (oldvpos + vlen < M)
-      vcoord_[oldvpos + vlen - 1] = true;
+      vcoord_[oldvpos + vlen - 1] += 1;
 
     curnum_ += 1;
     return res;
