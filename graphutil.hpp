@@ -12,6 +12,15 @@
 #ifndef KNUTH_GRAPHUTIL_GUARD_
 #define KNUTH_GRAPHUTIL_GUARD_
 
+#include <set>
+#include <utility>
+#include <vector>
+
+using std::forward;
+using std::remove_reference_t;
+using std::set;
+using std::vector;
+
 namespace KGraph {
 
 //------------------------------------------------------------------------------
@@ -72,10 +81,10 @@ static inline set<size_t> disjoint (set<size_t> a, set<size_t> b);
 
 template <typename G, typename F>
 void dfs_backedges(G&& graph, F fcb, size_t start) {
-  typename remove_reference_t<G>::marks_t marks;
-  typename remove_reference_t<G>::arr_t path;
+  typename remove_reference_t<G>::marks_t marks = graph.init_marks();
+  typename remove_reference_t<G>::arr_t path = graph.init_arr();
   size_t curpos = 0;
-  marks.set(start);
+  marks[start] = true;
   path[curpos++] = start;
 
   // path is stack of DFS-visited nodes. Do while it is not exhausted
@@ -94,7 +103,7 @@ void dfs_backedges(G&& graph, F fcb, size_t start) {
         return true;
 
       // otherwise marked node means back edge if it already exists in path
-      if (marks.test(targv)) {
+      if (marks[targv]) {
         typename remove_reference_t<G>::arrit start = begin(path);
         typename remove_reference_t<G>::arrit fin = start + curpos - 1;
         if (find(start, fin, targv) != fin) {
@@ -112,7 +121,7 @@ void dfs_backedges(G&& graph, F fcb, size_t start) {
       }
 
       // mark unmarked node and increment path
-      marks.set(targv);
+      marks[targv] = true;
       path[curpos++] = targv;
       return false;
     });
@@ -148,7 +157,7 @@ auto nonmod_spanning(G&& graph) {
   });
 
   size_t residx = 0;
-  typename remove_reference_t<G>::span_t res;
+  typename remove_reference_t<G>::span_t res = graph.init_span();
   for (size_t e = graph.edges_start(); e < graph.nrecords(); e += 2) {
     if (v[e] == 1)
       res[residx++] = e;
@@ -160,13 +169,13 @@ auto nonmod_spanning(G&& graph) {
 
 template <typename G>
 bool is_connected(G&& graph, size_t x) {
-  typename remove_reference_t<G>::marks_t marks;
+  typename remove_reference_t<G>::marks_t marks = graph.init_marks();
   graph.forall_edges([&](size_t e) {
-    marks.set(graph.vhead(e) - 1);
-    marks.set(graph.vtail(e) - 1);
+    marks[graph.vhead(e) - 1] = true;
+    marks[graph.vtail(e) - 1] = true;
     return true;
   });
-  return marks.count() == x;
+  return graph.count_marks(move(marks)) == x;
 }
 
 template <typename G>

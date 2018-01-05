@@ -20,72 +20,70 @@
 
 #include <algorithm>
 #include <array>
-#include <bitset>
 #include <cassert>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <numeric>
-#include <set>
-#include <stack>
-#include <string>
 #include <utility>
 #include <vector>
 
 using std::array;
 using std::begin;
-using std::bitset;
-using std::cout;
+using std::count;
 using std::end;
 using std::endl;
-using std::forward;
-using std::inserter;
 using std::find;
 using std::function;
 using std::make_pair;
 using std::move;
-using std::ofstream;
 using std::ostream;
 using std::pair;
 using std::remove_reference_t;
-using std::set;
-using std::stack;
-using std::string;
-using std::swap;
 using std::vector;
 
 namespace KGraph {
 
 // print representation: coordinates for each vertex
-template <size_t N>
-using Rep = array<array<size_t, 2>, N>;
+using Rep = vector<array<size_t, 2>>;
 
 static inline constexpr size_t even_one(size_t x) {
   return ((x % 2) == 0) ? x : (x^1); 
 }
 
-// mutable graph with compile-time known number of vertices
-template <size_t N>
+// mutable graph with runtime known number of vertices
 class Graph final {
+
+  // number of vertices
+  size_t N;
+
   // edge records from 0 to N-1 has special meaning: these are tops of edge lists
   // edge pair (backward direction) always has number edge^1
   struct EdgeRecord {
     size_t vidx, next, prev;
   };
-  vector<EdgeRecord> edges_;
-  array<size_t, N> degrees_ = {};
 
-// array iterator
+  vector<EdgeRecord> edges_;
+  vector<size_t> degrees_;
+
+// dependent types
 public:
-  using arr_t = array<size_t, N>;
-  using span_t = array<size_t, N-1>;
+  using arr_t = vector<size_t>;
+  using span_t = vector<size_t>;
   using arrit = typename arr_t::iterator;
-  using marks_t = bitset<N>;
+  using marks_t = vector<bool>;
+
+// dependent types initializers
+public:
+  arr_t init_arr() { vector<size_t> ret(N, 0); return ret; }
+  span_t init_span() { vector<size_t> ret(N-1, 0); return ret; }
+  marks_t init_marks() { vector<bool> ret(N, false); return ret; }
+  size_t count_marks(marks_t &&m) { return count(m.begin(), m.end(), true); }
 
 // construction
 public:
-  Graph();
+  Graph(size_t);
 
   // add undirected edge between start and fin as pair of edges
   // return pair of edges for start--fin and fin--start
@@ -146,8 +144,8 @@ public:
   // Equality means that all vertices have same sets of adjacent vertices
   // and same degrees. 
   // This is stronger, that isomorphism, but cheap
-  // This is not quite right for multigraphs, so maybe bitset will become array
-  bool equals(const Graph<N>& rhs) const;
+  // This is not quite right for multigraphs
+  bool equals(const Graph& rhs) const;
 
 // helpers
 private:
@@ -160,176 +158,16 @@ private:
 
 //------------------------------------------------------------------------------
 //
-// Graph methods
-//
-//------------------------------------------------------------------------------
-
-template <size_t N>
-Graph<N>::Graph(): edges_(N) {
-  // filling special-meaning records 0 .. N-1
-  for (size_t idx = 0; idx != N; ++idx) {
-    edges_[idx] = {0, idx, idx};
-    degrees_[idx] = 0;
-  }
-
-  // "aligning" vertex if total number is odd
-  if constexpr ((N % 2) == 1)
-    edges_.push_back({0, N, N});
-}
-
-template <size_t N>
-pair<size_t, size_t> Graph<N>::add_edge(size_t start, size_t fin) {
-  assert (start > 0);
-  assert (fin > 0);
-  assert (start != fin);
-  size_t oldsz = edges_.size();
-  assert ((oldsz % 2) == 0);
-  size_t outedge = oldsz; // start ->
-  size_t inedge = oldsz + 1; // -> end
-  edges_.push_back({start, 0, 0});
-  edges_.push_back({fin, 0, 0});
-  eundelete(outedge);
-  return make_pair(outedge, inedge);
-}
-
-template <size_t N>
-void Graph<N>::dump(ostream &os) const {
-  os << "Graph of: " << N << " vertices and " << nedges() << " edges" << endl;  
-  for (size_t cnt = 0; cnt < edges_.size(); ++cnt) 
-    os << cnt << "\t";
-  os << endl;
-  for (auto e: edges_) 
-    os << e.vidx << "\t";
-  os << endl;
-  for (auto e: edges_) 
-    os << e.next << "\t";
-  os << endl;
-  for (auto e: edges_) 
-    os << e.prev << "\t";
-  os << endl;
-}
-
-template <size_t N>
-bool Graph<N>::forall_vertices(function<bool(size_t)> f) const {
-  for (size_t idx = 0; idx != N; ++idx) {
-    bool res = f(idx);
-    if (!res) return false;
-  }
-  return true;
-}
-
-template <size_t N>
-bool Graph<N>::for_adjacent_edges(size_t idx, function<bool(size_t)> f) const {
-  size_t edge = edges_[idx].next;
-  while (edge > N - 1) {      
-    bool res = f(edge);
-    if (!res) return false;
-    edge = edges_[edge].next;
-  }
-  return true;
-}
-
-template <size_t N>
-bool Graph<N>::forall_edges(function<bool(size_t)> f) const {
-  return forall_vertices([&] (size_t v) {
-    return for_adjacent_edges(v, [&] (size_t e) {
-      bool res = true;
-      if (vhead(e) > vtail(e))
-        res = f(e);          
-      return res;
-    });
-  });
-}
-
-template <size_t N>
-void Graph<N>::edelete(size_t edge) { 
-  assert (edge < edges_.size());
-  edge = even_one(edge);
-
-  size_t start = vhead(edge);
-  size_t fin = vtail(edge);
-
-  degrees_[start - 1] -= 1;
-  degrees_[fin - 1] -= 1;
-
-  edelete_impl(edge);
-  edelete_impl(edge ^ 1);
-}
-
-template <size_t N>
-void Graph<N>::eundelete(size_t edge) { 
-  assert (edge < edges_.size());
-  edge = even_one(edge);
-
-  size_t inedge = edge^1;
-
-  size_t start = vhead(edge);
-  size_t fin = vtail(edge);
-
-  degrees_[start - 1] += 1;
-  degrees_[fin - 1] += 1;
-
-  eundelete_impl(edge, start);
-  eundelete_impl(inedge, fin);
-}
-
-template <size_t N>
-bool Graph<N>::equals(const Graph<N>& rhs) const {
-  for (size_t v = 0; v < N; ++v) {
-    bitset<N> adj;
-    if (deg(v+1) != rhs.deg(v+1))
-      return false;
-    for_adjacent_edges(v, [&](size_t edge) {
-      adj.set(vhead(edge) - 1);
-      adj.set(vtail(edge) - 1);
-      return true;
-    });
-    bool res = rhs.for_adjacent_edges(v, [&](size_t edge) {
-      if (!adj.test(rhs.vhead(edge) - 1) || 
-          !adj.test(rhs.vtail(edge) - 1))
-        return false;
-      return true;
-    });
-    if (!res)
-     return false;
-  }
-  return true;
-}
-
-template <size_t N>
-void Graph<N>::edelete_impl(size_t edge) { 
-  auto oldprev = edges_[edge].prev;
-  auto newnext = edges_[edge].next;
-  edges_[oldprev].next = newnext; 
-  edges_[newnext].prev = oldprev; 
-}
-
-template <size_t N>
-void Graph<N>::eundelete_impl(size_t edge, size_t vidx) { 
-  auto prev = edges_[vidx - 1].prev;
-  auto next = edges_[prev].next;
-  edges_[vidx - 1].prev = edge;
-  edges_[prev].next = edge;
-
-  edges_[edge].next = next;
-  edges_[edge].prev = prev;
-}
-
-
-//------------------------------------------------------------------------------
-//
 // Standalone operators
 //
 //------------------------------------------------------------------------------
 
 
-template <size_t N>
-bool operator ==(const Graph<N> &lhs, const Graph<N> &rhs) {
+static inline bool operator ==(const Graph &lhs, const Graph &rhs) {
   return lhs.equals(rhs);
 }
 
-template <size_t N>
-bool operator !=(const Graph<N> &lhs, const Graph<N> &rhs) {
+static inline bool operator !=(const Graph &lhs, const Graph &rhs) {
   return !(lhs == rhs);
 }
 
