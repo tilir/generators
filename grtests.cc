@@ -4,8 +4,15 @@
 //
 //------------------------------------------------------------------------------
 
+#include <iostream>
+#include <string>
+
 #include "graph.hpp"
 
+using std::cout;
+using std::endl;
+using std::ofstream;
+using std::string;
 using std::to_string;
 
 template <typename T, typename R>
@@ -16,7 +23,7 @@ void do_dump(string name, T og, R rep) {
 
 int test_representation() {
   cout << "--- Test for representation ---" << endl;
-  auto [g, rep] = get_rombic_graph<0>();
+  auto [g, rep] = get_rombic_graph(0);
 
 /*
   Dump shall give:
@@ -31,13 +38,13 @@ int test_representation() {
   g.dump(cout);
   do_dump("knuth.dot", g, rep);
 
-  auto [g23, rep23] = get_mn_lattice<2, 3>();
+  auto [g23, rep23] = get_mn_lattice(2, 3);
   do_dump("lat23.dot", g23, rep23);
 
-  auto [g33, rep33] = get_mn_lattice<3, 3>();
+  auto [g33, rep33] = get_mn_lattice(3, 3);
   do_dump("lat33.dot", g33, rep33);
 
-  auto [g43, rep43] = get_mn_lattice<4, 3>();
+  auto [g43, rep43] = get_mn_lattice(4, 3);
   do_dump("lat43.dot", g43, rep43);
 
   cout << "Look at files: knuth.dot, lat23.dot, lat33.dot, lat43.dot" << endl;
@@ -48,19 +55,19 @@ int test_representation() {
 int test_dfs() {
   cout << "--- Test for single spanning tree via DFS ---" << endl;
 
-  auto [g, rep] = get_rombic_graph<0>();
+  auto [g, rep] = get_rombic_graph(0);
   auto os = spanning(g);
   do_dump("kspan.dot", g, rep);  
 
-  auto [g23, rep23] = get_mn_lattice<2, 3>();
+  auto [g23, rep23] = get_mn_lattice(2, 3);
   auto os23 = spanning(g23);
   do_dump("lat23span.dot", g23, rep23);
 
-  auto [g33, rep33] = get_mn_lattice<3, 3>();
+  auto [g33, rep33] = get_mn_lattice(3, 3);
   auto os33 = spanning(g33);
   do_dump("lat33span.dot", g33, rep33);
 
-  auto [g43, rep43] = get_mn_lattice<4, 3>();
+  auto [g43, rep43] = get_mn_lattice(4, 3);
   auto os43 = spanning(g43);
   do_dump("lat43span.dot", g43, rep43);
   
@@ -72,7 +79,7 @@ int test_dfs() {
 int test_loop_set() {
   cout << "--- Test for single loop set ---" << endl;
 
-  auto [g, rep] = get_rombic_graph<0>();
+  auto [g, rep] = get_rombic_graph(0);
   auto os = spanning(g);
   assert(!os.empty());
   g.eundelete(*os.begin());
@@ -84,7 +91,7 @@ int test_loop_set() {
     cout << g.vhead(e) << "-" << g.vtail(e) << " ";
   cout << endl;  
 
-  auto [g23, rep23] = get_mn_lattice<2, 3>();
+  auto [g23, rep23] = get_mn_lattice(2, 3);
   auto os23 = spanning(g23);
   assert(!os23.empty());
   g23.eundelete(*os23.begin());
@@ -96,7 +103,7 @@ int test_loop_set() {
     cout << g23.vhead(e) << "-" << g23.vtail(e) << " ";  
   cout << endl;  
 
-  auto [g33, rep33] = get_mn_lattice<3, 3>();
+  auto [g33, rep33] = get_mn_lattice(3, 3);
   auto os33 = spanning(g33);
   assert(!os33.empty());
   g33.eundelete(*os33.begin());
@@ -114,11 +121,11 @@ int test_loop_set() {
 int
 test_equality() {
   cout << "--- Test for operator== ---" << endl;
-  auto [g, rep] = get_rombic_graph<0>();
+  auto [g, rep] = get_rombic_graph(0);
   auto edges = nonmod_spanning(g);
   for (auto e: edges) 
     cout << e << ": " << g.vhead(e) << "-" << g.vtail(e) << endl;
-  Graph<4> newg;
+  Graph newg(4);
   newg.add_edge(g.vhead(edges[0]), g.vtail(edges[0]));
   newg.add_edge(g.vhead(edges[1]), g.vtail(edges[1]));
   newg.add_edge(g.vhead(edges[2]), g.vtail(edges[2]));
