@@ -204,6 +204,18 @@ public:
     return true;
   }
 
+  vector<size_t> vtype_signature() {
+    vector<size_t> retval(N);
+    for (size_t x = 0; x < N; ++x) {
+      size_t next = 1;
+      for (size_t y = 1; y < M; ++y) 
+        if (fld_[y*N + x] != fld_[(y-1)*N + x])
+          next += 1;
+      retval[x] = next;
+    }
+    return retval;
+  }
+
   void dump(ostream &os) {
     for (size_t x = 0; x < M; ++x) {
       for (size_t y = 0; y < N; ++y)

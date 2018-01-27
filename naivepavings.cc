@@ -40,6 +40,7 @@ struct genconfig {
   bool only_stat = false;
   bool no_stat = false;
   bool only_vtype = false;
+  bool only_count = false;
 };
 
 size_t naive_gen(size_t N, size_t M, genconfig gcf) {
@@ -60,6 +61,7 @@ size_t naive_gen(size_t N, size_t M, genconfig gcf) {
   size_t nbtypes = max({N, M, (N - 1) * (M - 1)});
   vector<size_t> btypecnts(nbtypes + 1);
   map<pair<size_t, size_t>, pair<size_t, size_t>> btypes{};
+  map<vector<size_t>, size_t> genfunc;
 
   btypes[make_pair(N, btypecnts[N])] = make_pair(N, 1);
   btypecnts[N] += 1;
@@ -179,10 +181,16 @@ size_t naive_gen(size_t N, size_t M, genconfig gcf) {
           }
           if (f.vtype()) {
             count_vt += 1;
+            auto v = f.vtype_signature();
             if (!gcf.only_stat && gcf.only_vtype) {
-              f.dump(cout);
+              f.dump(cout);             
+              cout << '\t';
+              for (auto s : v)
+                cout << s << ' ';
               cout << endl;
             }
+            sort(v.begin(), v.end());
+            genfunc[v] += 1;
           }
         }
 
@@ -207,12 +215,26 @@ size_t naive_gen(size_t N, size_t M, genconfig gcf) {
   } while (next_break_of(M * N, M + N - 1, bcnt.begin(), bcnt.end()));
 
   if (!gcf.no_stat) {
-    cout << "Statistics: " << endl;
-    cout << "Search space size: " << count_ss << endl;
-    cout << "Not a pavings: " << count_np << endl;
-    cout << "Not tight pavings: " << count_nt << endl;
+    if (!gcf.only_count) {
+      cout << "Statistics: " << endl;
+      cout << "Search space size: " << count_ss << endl;
+      cout << "Not a pavings: " << count_np << endl;
+      cout << "Not tight pavings: " << count_nt << endl;
+    }
     cout << "Tight pavings: " << count_tp << endl;
-    cout << "Vertical types: " << count_vt << endl;
+    if (!gcf.only_count) {
+      cout << "Vertical types: " << count_vt << endl;
+      cout << "Generation function: ";
+      for (auto g : genfunc) {
+        if (g != *genfunc.begin())
+          cout << "+";
+        if (g.second > 1)
+          cout << g.second;
+        for (auto f: g.first)
+          cout << "f" << f;      
+      }
+      cout << endl;
+    }
   }
 
   // 5. return result
@@ -227,6 +249,7 @@ void printusage(char *argv0) {
   cout << "Options supported are:" << endl;
   cout << "\t-s -- show statistics only" << endl;
   cout << "\t-n -- show no statistics" << endl;
+  cout << "\t-c -- only count pavings" << endl;
   cout << "\t-v -- show vtype pavings" << endl;
 }
 
@@ -264,6 +287,9 @@ int main(int argc, char **argv) {
     case 'n':
       gcf.no_stat = true;
       break;
+    case 'c':
+      gcf.only_count = true;
+      break;
     case 'v':
       gcf.only_vtype = true;
       break;
@@ -276,3 +302,4 @@ int main(int argc, char **argv) {
 
   naive_gen(n, m, gcf);
 }
+
