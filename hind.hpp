@@ -3,15 +3,17 @@
 // Hindenburg algorithm, rewritten in C++ way
 // see also: 7.2.1.4H in TAOCP
 //
-//------------------------------------------------------------------------------
-//
 // This file implements next_break_of(n, m, begin, end) step
 // just like std::next_permuitation do so for permutations
 //
 //------------------------------------------------------------------------------
+//
+// This file is licensed after LGPL v3
+// Look at: https://www.gnu.org/licenses/lgpl-3.0.en.html for details
+//
+//------------------------------------------------------------------------------
 
-#ifndef HIND_GUARD_
-#define HIND_GUARD_
+#pragma once
 
 #include <cassert>
 
@@ -57,5 +59,3 @@ bool next_break_of(size_t n, size_t m, Iter start, Iter end) {
   last = s;
   return true;
 }
-
-#endif
