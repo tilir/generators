@@ -8,7 +8,7 @@
 //    for (auto it = ac.begin(); it != ac.end(); ++it)
 //      std::cout << *it << " ";
 //    std::cout << std::endl;
-//  } while (ac.nexcomblen_comb());
+//  } while (ac.next_comb());
 //
 // output:
 // 0 1 2
